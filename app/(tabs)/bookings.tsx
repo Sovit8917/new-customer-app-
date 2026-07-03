@@ -82,8 +82,8 @@ export default function BookingsScreen() {
           <StatusPill label={statusLabel(item.status)} tone={tone} />
         </View>
 
-        {item.items?.map((i) => (
-          <Text key={i.service.id} style={styles.serviceItem} numberOfLines={1}>
+        {item.items?.map((i, idx) => (
+          <Text key={`${i.service.id}-${idx}`} style={styles.serviceItem} numberOfLines={1}>
             · {i.service.name} × {i.quantity}
           </Text>
         ))}

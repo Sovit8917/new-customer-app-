@@ -12,10 +12,10 @@ import { Card, StatusPill, RatingTag } from '../../src/components/ui';
 import Button from '../../src/components/Button';
 
 function statusTone(s: string): 'info' | 'success' | 'warning' | 'danger' {
-  if (['SCHEDULED', 'CONFIRMED'].includes(s)) return 'info';
-  if (['IN_PROGRESS', 'WORKER_ARRIVED'].includes(s)) return 'warning';
+  if (['PENDING', 'ACCEPTED'].includes(s)) return 'info';
+  if (s === 'IN_PROGRESS') return 'warning';
   if (s === 'COMPLETED') return 'success';
-  if (s === 'CANCELLED') return 'danger';
+  if (['CANCELLED', 'REJECTED'].includes(s)) return 'danger';
   return 'info';
 }
 
@@ -83,7 +83,7 @@ export default function BookingDetail() {
     );
   }
 
-  const isActive = ['IN_PROGRESS', 'WORKER_ARRIVED', 'SCHEDULED', 'CONFIRMED'].includes(booking.status);
+  const isActive = ['PENDING', 'ACCEPTED', 'IN_PROGRESS'].includes(booking.status);
   const isCompleted = booking.status === 'COMPLETED';
 
   return (
@@ -111,8 +111,8 @@ export default function BookingDetail() {
         {/* Services */}
         <Card style={styles.card}>
           <Text style={styles.sectionLabel}>Services</Text>
-          {booking.items?.map((item) => (
-            <View key={item.service.id} style={styles.serviceRow}>
+          {booking.items?.map((item, idx) => (
+            <View key={`${item.service.id}-${idx}`} style={styles.serviceRow}>
               <View style={styles.serviceIconWrap}>
                 <Ionicons name="construct-outline" size={20} color={colors.primary} />
               </View>
@@ -120,14 +120,14 @@ export default function BookingDetail() {
                 <Text style={styles.serviceName}>{item.service.name}</Text>
                 <Text style={styles.serviceQty}>Qty: {item.quantity}</Text>
               </View>
-              <Text style={styles.servicePrice}>₹{item.service.price * item.quantity}</Text>
+              <Text style={styles.servicePrice}>₹{item.service.basePrice * item.quantity}</Text>
             </View>
           )) ?? (
             <Text style={{ color: colors.textMuted }}>No service details</Text>
           )}
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalVal}>₹{booking.total ?? '—'}</Text>
+            <Text style={styles.totalVal}>₹{booking.finalAmount ?? '—'}</Text>
           </View>
         </Card>
 
@@ -185,7 +185,7 @@ export default function BookingDetail() {
         {/* Actions */}
         {isActive && (
           <View style={styles.actionsWrap}>
-            {booking.status === 'IN_PROGRESS' || booking.status === 'WORKER_ARRIVED' ? (
+            {booking.status === 'IN_PROGRESS' ? (
               <Button title="Track Worker on Map" onPress={() => router.push({ pathname: '/booking/track', params: { bookingId: id } })} />
             ) : null}
             {booking.status !== 'CANCELLED' && (
