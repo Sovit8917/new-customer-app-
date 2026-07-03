@@ -34,8 +34,8 @@ export default function BookingChat() {
         ChatAPI.getMessages(bookingId),
         BookingAPI.getById(bookingId).catch(() => null),
       ]);
-      setMessages((msgRes.data ?? []).slice().reverse());
-      if (bookingRes?.data?.worker?.name) setWorkerName(bookingRes.data.worker.name);
+      setMessages((msgRes.data?.data ?? []).slice().reverse());
+if (bookingRes?.data?.data?.worker?.name) setWorkerName(bookingRes.data.data.worker.name);
     } catch {
       setError('Could not load this conversation. Please check your connection.');
     } finally {

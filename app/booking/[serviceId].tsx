@@ -1,32 +1,62 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, Pressable,
-  TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fontSize, fontWeight, spacing, radius, shadow } from '../../src/theme';
-import { CatalogAPI, BookingAPI, UserAPI, CouponAPI, PaymentAPI, Service, Address } from '../../src/api/endpoints';
-import RazorpayCheckout from 'react-native-razorpay';
-import Button from '../../src/components/Button';
-import { Card, Input } from '../../src/components/ui';
-import { useLocation } from '../../src/hooks/useLocation';
-import { useAuth } from '../../src/store/auth-context';
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+  radius,
+  shadow,
+} from "../../src/theme";
+import {
+  CatalogAPI,
+  BookingAPI,
+  UserAPI,
+  CouponAPI,
+  PaymentAPI,
+  Service,
+  Address,
+} from "../../src/api/endpoints";
+import RazorpayCheckout from "react-native-razorpay";
+import Button from "../../src/components/Button";
+import { Card, Input } from "../../src/components/ui";
+import { useLocation } from "../../src/hooks/useLocation";
+import { useAuth } from "../../src/store/auth-context";
 
-const STEPS = ['Date & Time', 'Address', 'Summary', 'Payment'];
+const STEPS = ["Date & Time", "Address", "Summary", "Payment"];
 
 const TIME_SLOTS = [
-  '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
-  '12:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM',
+  "08:00 AM",
+  "09:00 AM",
+  "10:00 AM",
+  "11:00 AM",
+  "12:00 PM",
+  "02:00 PM",
+  "03:00 PM",
+  "04:00 PM",
+  "05:00 PM",
 ];
 
 const PAYMENT_METHODS = [
-  { id: 'UPI', label: 'UPI', icon: 'phone-portrait-outline' as const },
-  { id: 'CARD', label: 'Debit / Credit Card', icon: 'card-outline' as const },
-  { id: 'WALLET', label: 'Wallet Balance', icon: 'wallet-outline' as const },
-  { id: 'CASH', label: 'Cash on Service', icon: 'cash-outline' as const },
+  { id: "UPI", label: "UPI", icon: "phone-portrait-outline" as const },
+  { id: "CARD", label: "Debit / Credit Card", icon: "card-outline" as const },
+  { id: "WALLET", label: "Wallet Balance", icon: "wallet-outline" as const },
+  { id: "CASH", label: "Cash on Service", icon: "cash-outline" as const },
 ];
 
 function StepIndicator({ current }: { current: number }) {
@@ -35,16 +65,37 @@ function StepIndicator({ current }: { current: number }) {
       {STEPS.map((s, i) => (
         <React.Fragment key={s}>
           <View style={styles.stepItem}>
-            <View style={[styles.stepCircle, i <= current && styles.stepCircleActive, i < current && styles.stepCircleDone]}>
+            <View
+              style={[
+                styles.stepCircle,
+                i <= current && styles.stepCircleActive,
+                i < current && styles.stepCircleDone,
+              ]}
+            >
               {i < current ? (
                 <Ionicons name="checkmark" size={14} color={colors.white} />
               ) : (
-                <Text style={[styles.stepNum, i <= current && styles.stepNumActive]}>{i + 1}</Text>
+                <Text
+                  style={[styles.stepNum, i <= current && styles.stepNumActive]}
+                >
+                  {i + 1}
+                </Text>
               )}
             </View>
-            <Text style={[styles.stepLabel, i === current && styles.stepLabelActive]}>{s}</Text>
+            <Text
+              style={[
+                styles.stepLabel,
+                i === current && styles.stepLabelActive,
+              ]}
+            >
+              {s}
+            </Text>
           </View>
-          {i < STEPS.length - 1 && <View style={[styles.stepLine, i < current && styles.stepLineDone]} />}
+          {i < STEPS.length - 1 && (
+            <View
+              style={[styles.stepLine, i < current && styles.stepLineDone]}
+            />
+          )}
         </React.Fragment>
       ))}
     </View>
@@ -76,20 +127,30 @@ export default function BookingFlow() {
 
   // Step 1
   const [addresses, setAddresses] = useState<Address[]>([]);
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
+    null,
+  );
   const [addingAddress, setAddingAddress] = useState(false);
-  const [newAddress, setNewAddress] = useState({ label: 'Home', line1: '', city: '' });
+  const [newAddress, setNewAddress] = useState({
+    label: "Home",
+    line1: "",
+    city: "",
+  });
 
   // Step 2
-  const [description, setDescription] = useState('');
-  const [couponCode, setCouponCode] = useState('');
+  const [description, setDescription] = useState("");
+  const [couponCode, setCouponCode] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponLoading, setCouponLoading] = useState(false);
 
   // Step 3
-  const [paymentMethod, setPaymentMethod] = useState('UPI');
+  const [paymentMethod, setPaymentMethod] = useState("UPI");
 
-  const { loading: locating, error: locError, detectCurrentLocation } = useLocation();
+  const {
+    loading: locating,
+    error: locError,
+    detectCurrentLocation,
+  } = useLocation();
 
   const init = async () => {
     setLoading(true);
@@ -99,30 +160,42 @@ export default function BookingFlow() {
         CatalogAPI.getService(serviceId!),
         UserAPI.getAddresses(),
       ]);
-      setService(svcRes.data);
-      setAddresses(addrRes.data ?? []);
-      const def = addrRes.data?.find((a) => a.isDefault);
+      setService(svcRes.data?.data);
+      setAddresses(addrRes.data?.data ?? []);
+      const def = addrRes.data?.data?.find((a) => a.isDefault);
+      if (def) setSelectedAddressId(def.id);
       if (def) setSelectedAddressId(def.id);
     } catch {
-      setInitError('Could not load booking details. Please check your connection and try again.');
+      setInitError(
+        "Could not load booking details. Please check your connection and try again.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { if (serviceId) init(); }, [serviceId]);
+  useEffect(() => {
+    if (serviceId) init();
+  }, [serviceId]);
 
   const formatDate = (d: Date) =>
-    d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+    d.toLocaleDateString("en-IN", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
 
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
     setCouponLoading(true);
     try {
-      const { data }: any = await CouponAPI.validate(couponCode.trim(), service!.price);
+      const { data }: any = await CouponAPI.validate(
+        couponCode.trim(),
+        service!.price,
+      );
       setCouponDiscount(data.discount ?? 0);
     } catch {
-      Alert.alert('Invalid Coupon', 'This coupon is not valid or has expired.');
+      Alert.alert("Invalid Coupon", "This coupon is not valid or has expired.");
       setCouponDiscount(0);
     } finally {
       setCouponLoading(false);
@@ -141,11 +214,11 @@ export default function BookingFlow() {
         description: description || undefined,
       });
 
-      const bookingId = created.id;
+      const bookingId = created.data.id;
 
-      if (paymentMethod === 'CASH') {
+      if (paymentMethod === "CASH") {
         await PaymentAPI.payCash(bookingId);
-      } else if (paymentMethod === 'WALLET') {
+      } else if (paymentMethod === "WALLET") {
         await PaymentAPI.payFromWallet(bookingId);
       } else {
         // UPI / CARD -> real Razorpay checkout
@@ -157,7 +230,7 @@ export default function BookingFlow() {
           order_id: order.orderId,
           amount: order.amount,
           currency: order.currency,
-          name: 'HomeServe',
+          name: "HomeServe",
           description: `Booking ${order.bookingNumber}`,
           prefill: {
             email: user?.email || undefined,
@@ -176,15 +249,15 @@ export default function BookingFlow() {
         });
       }
 
-      router.replace({ pathname: '/booking/success', params: { bookingId } });
+      router.replace({ pathname: "/booking/success", params: { bookingId } });
     } catch (e: any) {
       // Razorpay's own SDK rejects with { code, description } on cancel/failure
       // instead of an axios error, so handle both shapes.
       const message =
         e?.response?.data?.message ||
         e?.description ||
-        'Could not complete booking. Please try again.';
-      Alert.alert('Booking Failed', message);
+        "Could not complete booking. Please try again.";
+      Alert.alert("Booking Failed", message);
     } finally {
       setBooking(false);
     }
@@ -199,65 +272,134 @@ export default function BookingFlow() {
   const dates = genDates();
   const total = (service?.price ?? 0) - couponDiscount;
 
-  if (loading) return <ActivityIndicator color={colors.primary} style={{ flex: 1, marginTop: 80 }} />;
+  if (loading)
+    return (
+      <ActivityIndicator
+        color={colors.primary}
+        style={{ flex: 1, marginTop: 80 }}
+      />
+    );
 
   if (initError || !service) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.md }}>
-          <Ionicons name="cloud-offline-outline" size={48} color={colors.textMuted} />
-          <Text style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.textPrimary }}>Something went wrong</Text>
-          <Text style={{ fontSize: fontSize.sm, color: colors.textMuted, textAlign: 'center' }}>{initError ?? 'Service not found'}</Text>
-          <Button title="Retry" onPress={init} fullWidth={false} style={{ paddingHorizontal: spacing.xxxl }} />
+      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            padding: spacing.xl,
+            gap: spacing.md,
+          }}
+        >
+          <Ionicons
+            name="cloud-offline-outline"
+            size={48}
+            color={colors.textMuted}
+          />
+          <Text
+            style={{
+              fontSize: fontSize.md,
+              fontWeight: fontWeight.bold,
+              color: colors.textPrimary,
+            }}
+          >
+            Something went wrong
+          </Text>
+          <Text
+            style={{
+              fontSize: fontSize.sm,
+              color: colors.textMuted,
+              textAlign: "center",
+            }}
+          >
+            {initError ?? "Service not found"}
+          </Text>
+          <Button
+            title="Retry"
+            onPress={init}
+            fullWidth={false}
+            style={{ paddingHorizontal: spacing.xxxl }}
+          />
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => step === 0 ? router.back() : setStep(step - 1)} style={styles.backBtn}>
+        <Pressable
+          onPress={() => (step === 0 ? router.back() : setStep(step - 1))}
+          style={styles.backBtn}
+        >
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>Book Service</Text>
-        <Text style={styles.stepCounter}>{step + 1}/{STEPS.length}</Text>
+        <Text style={styles.stepCounter}>
+          {step + 1}/{STEPS.length}
+        </Text>
       </View>
 
       <StepIndicator current={step} />
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        >
           {/* ─── Step 0: Date & Time ─── */}
           {step === 0 && (
             <>
               <Text style={styles.sectionTitle}>Select Date</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateRow}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.dateRow}
+              >
                 {dates.map((d, i) => {
                   const sel = selectedDate?.toDateString() === d.toDateString();
                   return (
-                    <Pressable key={i} style={[styles.dateChip, sel && styles.dateChipSel]} onPress={() => setSelectedDate(d)}>
+                    <Pressable
+                      key={i}
+                      style={[styles.dateChip, sel && styles.dateChipSel]}
+                      onPress={() => setSelectedDate(d)}
+                    >
                       <Text style={[styles.dateDay, sel && styles.dateSel]}>
-                        {d.toLocaleDateString('en-IN', { weekday: 'short' })}
+                        {d.toLocaleDateString("en-IN", { weekday: "short" })}
                       </Text>
-                      <Text style={[styles.dateNum, sel && styles.dateSel]}>{d.getDate()}</Text>
+                      <Text style={[styles.dateNum, sel && styles.dateSel]}>
+                        {d.getDate()}
+                      </Text>
                       <Text style={[styles.dateMon, sel && styles.dateSel]}>
-                        {d.toLocaleDateString('en-IN', { month: 'short' })}
+                        {d.toLocaleDateString("en-IN", { month: "short" })}
                       </Text>
                     </Pressable>
                   );
                 })}
               </ScrollView>
 
-              <Text style={[styles.sectionTitle, { marginTop: spacing.xxl }]}>Select Time Slot</Text>
+              <Text style={[styles.sectionTitle, { marginTop: spacing.xxl }]}>
+                Select Time Slot
+              </Text>
               <View style={styles.timeGrid}>
                 {TIME_SLOTS.map((t) => {
                   const sel = selectedTime === t;
                   return (
-                    <Pressable key={t} style={[styles.timeChip, sel && styles.timeChipSel]} onPress={() => setSelectedTime(t)}>
-                      <Text style={[styles.timeText, sel && styles.timeTextSel]}>{t}</Text>
+                    <Pressable
+                      key={t}
+                      style={[styles.timeChip, sel && styles.timeChipSel]}
+                      onPress={() => setSelectedTime(t)}
+                    >
+                      <Text
+                        style={[styles.timeText, sel && styles.timeTextSel]}
+                      >
+                        {t}
+                      </Text>
                     </Pressable>
                   );
                 })}
@@ -272,22 +414,38 @@ export default function BookingFlow() {
               {addresses.map((addr) => (
                 <Pressable
                   key={addr.id}
-                  style={[styles.addressCard, selectedAddressId === addr.id && styles.addressCardSel]}
+                  style={[
+                    styles.addressCard,
+                    selectedAddressId === addr.id && styles.addressCardSel,
+                  ]}
                   onPress={() => setSelectedAddressId(addr.id)}
                 >
-                  <View style={[styles.addrRadio, selectedAddressId === addr.id && styles.addrRadioSel]}>
-                    {selectedAddressId === addr.id && <View style={styles.addrRadioInner} />}
+                  <View
+                    style={[
+                      styles.addrRadio,
+                      selectedAddressId === addr.id && styles.addrRadioSel,
+                    ]}
+                  >
+                    {selectedAddressId === addr.id && (
+                      <View style={styles.addrRadioInner} />
+                    )}
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={styles.addrLabelRow}>
                       <Text style={styles.addrLabel}>{addr.label}</Text>
                       {addr.isDefault && (
-                        <View style={styles.defaultBadge}><Text style={styles.defaultBadgeText}>Default</Text></View>
+                        <View style={styles.defaultBadge}>
+                          <Text style={styles.defaultBadgeText}>Default</Text>
+                        </View>
                       )}
                     </View>
                     <Text style={styles.addrLine}>{addr.line1}</Text>
-                    {addr.line2 ? <Text style={styles.addrLine}>{addr.line2}</Text> : null}
-                    {addr.city ? <Text style={styles.addrLine}>{addr.city}</Text> : null}
+                    {addr.line2 ? (
+                      <Text style={styles.addrLine}>{addr.line2}</Text>
+                    ) : null}
+                    {addr.city ? (
+                      <Text style={styles.addrLine}>{addr.city}</Text>
+                    ) : null}
                   </View>
                 </Pressable>
               ))}
@@ -312,19 +470,49 @@ export default function BookingFlow() {
                     {locating ? (
                       <ActivityIndicator size="small" color={colors.primary} />
                     ) : (
-                      <Ionicons name="navigate-outline" size={18} color={colors.primary} />
+                      <Ionicons
+                        name="navigate-outline"
+                        size={18}
+                        color={colors.primary}
+                      />
                     )}
-                    <Text style={styles.gpsBtnText}>{locating ? 'Detecting your location…' : 'Use current location'}</Text>
+                    <Text style={styles.gpsBtnText}>
+                      {locating
+                        ? "Detecting your location…"
+                        : "Use current location"}
+                    </Text>
                   </Pressable>
-                  {locError ? <Text style={{ color: colors.danger, fontSize: fontSize.xs, marginBottom: spacing.md }}>{locError}</Text> : null}
+                  {locError ? (
+                    <Text
+                      style={{
+                        color: colors.danger,
+                        fontSize: fontSize.xs,
+                        marginBottom: spacing.md,
+                      }}
+                    >
+                      {locError}
+                    </Text>
+                  ) : null}
                   <View style={styles.addrTypeRow}>
-                    {['Home', 'Work', 'Other'].map((l) => (
+                    {["Home", "Work", "Other"].map((l) => (
                       <Pressable
                         key={l}
-                        style={[styles.addrTypeChip, newAddress.label === l && styles.addrTypeChipSel]}
-                        onPress={() => setNewAddress({ ...newAddress, label: l })}
+                        style={[
+                          styles.addrTypeChip,
+                          newAddress.label === l && styles.addrTypeChipSel,
+                        ]}
+                        onPress={() =>
+                          setNewAddress({ ...newAddress, label: l })
+                        }
                       >
-                        <Text style={[styles.addrTypeText, newAddress.label === l && styles.addrTypeTextSel]}>{l}</Text>
+                        <Text
+                          style={[
+                            styles.addrTypeText,
+                            newAddress.label === l && styles.addrTypeTextSel,
+                          ]}
+                        >
+                          {l}
+                        </Text>
                       </Pressable>
                     ))}
                   </View>
@@ -333,14 +521,18 @@ export default function BookingFlow() {
                     leftIcon="location-outline"
                     placeholder="House no., street, area"
                     value={newAddress.line1}
-                    onChangeText={(t) => setNewAddress({ ...newAddress, line1: t })}
+                    onChangeText={(t) =>
+                      setNewAddress({ ...newAddress, line1: t })
+                    }
                   />
                   <Input
                     label="City"
                     leftIcon="business-outline"
                     placeholder="City"
                     value={newAddress.city}
-                    onChangeText={(t) => setNewAddress({ ...newAddress, city: t })}
+                    onChangeText={(t) =>
+                      setNewAddress({ ...newAddress, city: t })
+                    }
                   />
                   <Button
                     title="Save Address"
@@ -348,19 +540,31 @@ export default function BookingFlow() {
                     onPress={async () => {
                       if (!newAddress.line1) return;
                       try {
-                        const { data } = await UserAPI.addAddress(newAddress as any);
-                        setAddresses([...addresses, data]);
-                        setSelectedAddressId(data.id);
+                        const { data } = await UserAPI.addAddress(
+                          newAddress as any,
+                        );
+                        setAddresses([...addresses, data.data]);
+                        setSelectedAddressId(data.data.id);
                         setAddingAddress(false);
                       } catch {
-                        Alert.alert('Could not save address', 'Please check your connection and try again.');
+                        Alert.alert(
+                          "Could not save address",
+                          "Please check your connection and try again.",
+                        );
                       }
                     }}
                   />
                 </Card>
               ) : (
-                <Pressable style={styles.addAddressBtn} onPress={() => setAddingAddress(true)}>
-                  <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+                <Pressable
+                  style={styles.addAddressBtn}
+                  onPress={() => setAddingAddress(true)}
+                >
+                  <Ionicons
+                    name="add-circle-outline"
+                    size={20}
+                    color={colors.primary}
+                  />
                   <Text style={styles.addAddressText}>Add New Address</Text>
                 </Pressable>
               )}
@@ -378,22 +582,33 @@ export default function BookingFlow() {
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Date</Text>
-                  <Text style={styles.summaryVal}>{selectedDate ? formatDate(selectedDate) : '—'}</Text>
+                  <Text style={styles.summaryVal}>
+                    {selectedDate ? formatDate(selectedDate) : "—"}
+                  </Text>
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Time</Text>
-                  <Text style={styles.summaryVal}>{selectedTime ?? '—'}</Text>
+                  <Text style={styles.summaryVal}>{selectedTime ?? "—"}</Text>
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Address</Text>
                   <Text style={styles.summaryVal} numberOfLines={2}>
-                    {addresses.find((a) => a.id === selectedAddressId)?.line1 ?? '—'}
+                    {addresses.find((a) => a.id === selectedAddressId)?.line1 ??
+                      "—"}
                   </Text>
                 </View>
                 {couponDiscount > 0 && (
                   <View style={styles.summaryRow}>
-                    <Text style={[styles.summaryLabel, { color: colors.success }]}>Coupon ({couponCode})</Text>
-                    <Text style={[styles.summaryVal, { color: colors.success }]}>−₹{couponDiscount}</Text>
+                    <Text
+                      style={[styles.summaryLabel, { color: colors.success }]}
+                    >
+                      Coupon ({couponCode})
+                    </Text>
+                    <Text
+                      style={[styles.summaryVal, { color: colors.success }]}
+                    >
+                      −₹{couponDiscount}
+                    </Text>
                   </View>
                 )}
                 <View style={[styles.summaryRow, styles.totalRow]}>
@@ -412,14 +627,22 @@ export default function BookingFlow() {
                   onChangeText={setCouponCode}
                   autoCapitalize="characters"
                 />
-                <Pressable style={styles.applyBtn} onPress={applyCoupon} disabled={couponLoading}>
-                  {couponLoading ? <ActivityIndicator size="small" color={colors.white} /> : (
+                <Pressable
+                  style={styles.applyBtn}
+                  onPress={applyCoupon}
+                  disabled={couponLoading}
+                >
+                  {couponLoading ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
                     <Text style={styles.applyBtnText}>Apply</Text>
                   )}
                 </Pressable>
               </View>
 
-              <Text style={[styles.sectionTitle, { marginTop: spacing.xxl }]}>Add Notes</Text>
+              <Text style={[styles.sectionTitle, { marginTop: spacing.xxl }]}>
+                Add Notes
+              </Text>
               <TextInput
                 style={styles.notesInput}
                 placeholder="Any specific instructions for the professional..."
@@ -440,15 +663,43 @@ export default function BookingFlow() {
               {PAYMENT_METHODS.map((pm) => (
                 <Pressable
                   key={pm.id}
-                  style={[styles.paymentCard, paymentMethod === pm.id && styles.paymentCardSel]}
+                  style={[
+                    styles.paymentCard,
+                    paymentMethod === pm.id && styles.paymentCardSel,
+                  ]}
                   onPress={() => setPaymentMethod(pm.id)}
                 >
-                  <View style={[styles.payIcon, paymentMethod === pm.id && styles.payIconSel]}>
-                    <Ionicons name={pm.icon} size={20} color={paymentMethod === pm.id ? colors.white : colors.primary} />
+                  <View
+                    style={[
+                      styles.payIcon,
+                      paymentMethod === pm.id && styles.payIconSel,
+                    ]}
+                  >
+                    <Ionicons
+                      name={pm.icon}
+                      size={20}
+                      color={
+                        paymentMethod === pm.id ? colors.white : colors.primary
+                      }
+                    />
                   </View>
-                  <Text style={[styles.payLabel, paymentMethod === pm.id && styles.payLabelSel]}>{pm.label}</Text>
-                  <View style={[styles.payRadio, paymentMethod === pm.id && styles.payRadioSel]}>
-                    {paymentMethod === pm.id && <View style={styles.payRadioInner} />}
+                  <Text
+                    style={[
+                      styles.payLabel,
+                      paymentMethod === pm.id && styles.payLabelSel,
+                    ]}
+                  >
+                    {pm.label}
+                  </Text>
+                  <View
+                    style={[
+                      styles.payRadio,
+                      paymentMethod === pm.id && styles.payRadioSel,
+                    ]}
+                  >
+                    {paymentMethod === pm.id && (
+                      <View style={styles.payRadioInner} />
+                    )}
                   </View>
                 </Pressable>
               ))}
@@ -460,8 +711,16 @@ export default function BookingFlow() {
                 </View>
                 {couponDiscount > 0 && (
                   <View style={styles.summaryRow}>
-                    <Text style={[styles.summaryLabel, { color: colors.success }]}>Discount</Text>
-                    <Text style={[styles.summaryVal, { color: colors.success }]}>−₹{couponDiscount}</Text>
+                    <Text
+                      style={[styles.summaryLabel, { color: colors.success }]}
+                    >
+                      Discount
+                    </Text>
+                    <Text
+                      style={[styles.summaryVal, { color: colors.success }]}
+                    >
+                      −₹{couponDiscount}
+                    </Text>
                   </View>
                 )}
                 <View style={[styles.summaryRow, styles.totalRow]}>
@@ -496,131 +755,364 @@ export default function BookingFlow() {
 
 const styles = StyleSheet.create({
   gpsBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
-    backgroundColor: colors.primaryLight, borderRadius: radius.md, paddingVertical: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
     marginBottom: spacing.md,
   },
-  gpsBtnText: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.primary },
+  gpsBtnText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.primary,
+  },
   safe: { flex: 1, backgroundColor: colors.background },
   header: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
-    paddingHorizontal: spacing.xl, paddingVertical: spacing.md,
-    backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.textPrimary },
-  stepCounter: { fontSize: fontSize.sm, color: colors.textMuted, fontWeight: fontWeight.medium },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
+  stepCounter: {
+    fontSize: fontSize.sm,
+    color: colors.textMuted,
+    fontWeight: fontWeight.medium,
+  },
 
   stepRow: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.lg,
-    backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  stepItem: { flex: 1, alignItems: 'center', gap: spacing.xs },
-  stepLine: { flex: 1, height: 2, backgroundColor: colors.border, marginTop: 15 },
+  stepItem: { flex: 1, alignItems: "center", gap: spacing.xs },
+  stepLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: colors.border,
+    marginTop: 15,
+  },
   stepLineDone: { backgroundColor: colors.primary },
   stepCircle: {
-    width: 30, height: 30, borderRadius: 15,
-    backgroundColor: colors.surfaceMuted, borderWidth: 2, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  stepCircleActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
-  stepCircleDone: { backgroundColor: colors.primary, borderColor: colors.primary },
-  stepNum: { fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: colors.textMuted },
+  stepCircleActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  stepCircleDone: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  stepNum: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.textMuted,
+  },
   stepNumActive: { color: colors.primary },
-  stepLabel: { fontSize: 10, color: colors.textMuted, textAlign: 'center', fontWeight: fontWeight.medium },
+  stepLabel: {
+    fontSize: 10,
+    color: colors.textMuted,
+    textAlign: "center",
+    fontWeight: fontWeight.medium,
+  },
   stepLabelActive: { color: colors.primary, fontWeight: fontWeight.bold },
 
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxxl },
-  sectionTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.textPrimary, marginBottom: spacing.md },
+  sectionTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
 
   dateRow: { gap: spacing.sm, paddingBottom: spacing.sm },
   dateChip: {
-    width: 70, paddingVertical: spacing.md, borderRadius: radius.lg, alignItems: 'center',
-    backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border, gap: 2,
+    width: 70,
+    paddingVertical: spacing.md,
+    borderRadius: radius.lg,
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    gap: 2,
   },
   dateChipSel: { backgroundColor: colors.primary, borderColor: colors.primary },
-  dateDay: { fontSize: 11, fontWeight: fontWeight.medium, color: colors.textMuted },
-  dateNum: { fontSize: fontSize.xl, fontWeight: fontWeight.extrabold, color: colors.textPrimary },
+  dateDay: {
+    fontSize: 11,
+    fontWeight: fontWeight.medium,
+    color: colors.textMuted,
+  },
+  dateNum: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.extrabold,
+    color: colors.textPrimary,
+  },
   dateMon: { fontSize: 11, color: colors.textMuted },
   dateSel: { color: colors.white },
 
-  timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  timeGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   timeChip: {
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radius.md,
-    backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.border,
   },
   timeChipSel: { backgroundColor: colors.primary, borderColor: colors.primary },
-  timeText: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  timeText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
   timeTextSel: { color: colors.white },
 
   addressCard: {
-    flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start',
-    backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg,
-    borderWidth: 1.5, borderColor: colors.border, marginBottom: spacing.md, ...shadow.subtle,
+    flexDirection: "row",
+    gap: spacing.md,
+    alignItems: "flex-start",
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    marginBottom: spacing.md,
+    ...shadow.subtle,
   },
-  addressCardSel: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+  addressCardSel: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
   addrRadio: {
-    width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center', marginTop: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
   },
   addrRadioSel: { borderColor: colors.primary },
-  addrRadioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
-  addrLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs },
-  addrLabel: { fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.textPrimary },
+  addrRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
+  },
+  addrLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  addrLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
   addrLine: { fontSize: fontSize.xs, color: colors.textSecondary },
-  defaultBadge: { backgroundColor: colors.successLight, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
-  defaultBadgeText: { fontSize: 10, color: colors.success, fontWeight: fontWeight.bold },
+  defaultBadge: {
+    backgroundColor: colors.successLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+  },
+  defaultBadgeText: {
+    fontSize: 10,
+    color: colors.success,
+    fontWeight: fontWeight.bold,
+  },
   addAddressBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm, justifyContent: 'center',
-    padding: spacing.lg, borderRadius: radius.lg, borderWidth: 1.5, borderColor: colors.primary,
-    borderStyle: 'dashed', marginTop: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    justifyContent: "center",
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderStyle: "dashed",
+    marginTop: spacing.sm,
   },
-  addAddressText: { color: colors.primary, fontWeight: fontWeight.semibold, fontSize: fontSize.md },
-  addrTypeRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
+  addAddressText: {
+    color: colors.primary,
+    fontWeight: fontWeight.semibold,
+    fontSize: fontSize.md,
+  },
+  addrTypeRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
   addrTypeChip: {
-    flex: 1, paddingVertical: spacing.sm, borderRadius: radius.md, alignItems: 'center',
-    backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border,
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    alignItems: "center",
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  addrTypeChipSel: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
-  addrTypeText: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.textMuted },
+  addrTypeChipSel: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+  },
+  addrTypeText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.textMuted,
+  },
   addrTypeTextSel: { color: colors.primary },
 
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
-  summaryLabel: { fontSize: fontSize.sm, color: colors.textSecondary },
-  summaryVal: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.textPrimary, textAlign: 'right', flex: 1, marginLeft: spacing.lg },
-  totalRow: { borderBottomWidth: 0, marginTop: spacing.sm },
-  totalLabel: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.textPrimary },
-  totalVal: { fontSize: fontSize.xl, fontWeight: fontWeight.extrabold, color: colors.primary },
-  couponRow: {
-    flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.md,
-    borderWidth: 1.5, borderColor: colors.border, overflow: 'hidden',
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
   },
-  couponInput: { flex: 1, padding: spacing.lg, fontSize: fontSize.md, color: colors.textPrimary },
-  applyBtn: { backgroundColor: colors.primary, paddingHorizontal: spacing.xl, alignItems: 'center', justifyContent: 'center' },
-  applyBtnText: { color: colors.white, fontWeight: fontWeight.bold, fontSize: fontSize.sm },
+  summaryLabel: { fontSize: fontSize.sm, color: colors.textSecondary },
+  summaryVal: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+    textAlign: "right",
+    flex: 1,
+    marginLeft: spacing.lg,
+  },
+  totalRow: { borderBottomWidth: 0, marginTop: spacing.sm },
+  totalLabel: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
+  totalVal: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.extrabold,
+    color: colors.primary,
+  },
+  couponRow: {
+    flexDirection: "row",
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    overflow: "hidden",
+  },
+  couponInput: {
+    flex: 1,
+    padding: spacing.lg,
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
+  },
+  applyBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xl,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  applyBtnText: {
+    color: colors.white,
+    fontWeight: fontWeight.bold,
+    fontSize: fontSize.sm,
+  },
   notesInput: {
-    backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1.5,
-    borderColor: colors.border, padding: spacing.lg, fontSize: fontSize.sm,
-    color: colors.textPrimary, minHeight: 100,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
+    minHeight: 100,
   },
   paymentCard: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
-    backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg,
-    borderWidth: 1.5, borderColor: colors.border, marginBottom: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    marginBottom: spacing.md,
   },
-  paymentCardSel: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
-  payIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
+  paymentCardSel: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  payIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   payIconSel: { backgroundColor: colors.primary },
-  payLabel: { flex: 1, fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  payLabel: {
+    flex: 1,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
   payLabelSel: { color: colors.primary },
-  payRadio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  payRadio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   payRadioSel: { borderColor: colors.primary },
-  payRadioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
+  payRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
+  },
   amountSummary: { marginTop: spacing.xxl },
 
   bottomBar: {
-    paddingHorizontal: spacing.xl, paddingVertical: spacing.md,
-    backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
 });

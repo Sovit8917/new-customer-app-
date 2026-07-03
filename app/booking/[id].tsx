@@ -205,7 +205,7 @@ export default function BookingDetail() {
               title="Rate & Review"
               onPress={() => router.push({ pathname: '/booking/review', params: { bookingId: id, workerId: booking.worker?.id ?? '' } })}
             />
-            <Button title="Rebook" variant="secondary" onPress={() => router.push({ pathname: '/booking/[serviceId]', params: { serviceId: booking.items?.[0]?.service.id ?? '' } })} />
+            <Button title="Rebook" variant="secondary" onPress={() => router.push({ pathname: '/booking/new/[serviceId]', params: { serviceId: booking.items?.[0]?.service.id ?? '' } })} />
           </View>
         )}
       </ScrollView>

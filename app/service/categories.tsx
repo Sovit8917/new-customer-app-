@@ -37,7 +37,7 @@ export default function CategoriesScreen() {
     setLoading(true);
     setError(null);
     CatalogAPI.getCategories()
-      .then((r) => setCategories(r.data ?? []))
+      .then((r) => setCategories(r.data?.data ?? []))
       .catch(() => setError('Could not load categories. Please try again.'))
       .finally(() => setLoading(false));
   };

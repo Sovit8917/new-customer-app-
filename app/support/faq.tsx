@@ -18,7 +18,7 @@ export default function FaqScreen() {
 
   useEffect(() => {
     SupportAPI.getFaq()
-      .then((r) => setItems(r.data ?? []))
+      .then((r) => setItems(r.data?.data ?? []))
       .catch(() => setError('Could not load help articles. Please check your connection.'));
   }, []);
 

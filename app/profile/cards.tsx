@@ -24,7 +24,7 @@ export default function SavedCards() {
     setLoading(true);
     setError(null);
     UserAPI.getSavedCards()
-      .then((r: any) => setCards(r.data ?? []))
+      .then((r: any) => setCards(r.data?.data ?? []))
       .catch(() => setError('Could not load your saved cards. Please try again.'))
       .finally(() => setLoading(false));
   };

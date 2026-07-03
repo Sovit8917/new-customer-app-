@@ -167,7 +167,7 @@ export default function ServiceDetail() {
         </View>
         <Button
           title="Book Now"
-          onPress={() => router.push({ pathname: '/booking/[serviceId]', params: { serviceId: id } })}
+          onPress={() => router.push({ pathname: '/booking/new/[serviceId]', params: { serviceId: id } })}
           fullWidth={false}
           style={{ paddingHorizontal: spacing.xxxl }}
         />

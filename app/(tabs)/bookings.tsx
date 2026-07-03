@@ -46,7 +46,7 @@ export default function BookingsScreen() {
     setError(null);
     try {
       const { data } = await BookingAPI.myBookings();
-      setBookings(data ?? []); 
+      setBookings(data?.data ?? []);
     } catch {
       setError('Could not load your bookings. Pull down to try again.');
     } finally {
