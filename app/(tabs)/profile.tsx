@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   Pressable, Alert, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fontSize, fontWeight, spacing, radius, shadow } from '../../src/theme';
 import { useAuth } from '../../src/store/auth-context';
+import { BookingAPI, WalletAPI } from '../../src/api/endpoints';
 
 interface MenuItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -48,6 +49,34 @@ function MenuSection({ title, children }: { title: string; children: React.React
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const [stats, setStats] = useState<{ bookings: number; reviews: number; wallet: number } | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        try {
+          const [bookingsRes, walletRes] = await Promise.all([
+            BookingAPI.myBookings(),
+            WalletAPI.getWallet(),
+          ]);
+          if (cancelled) return;
+          const bookings = bookingsRes.data?.data ?? [];
+          const wallet = walletRes.data?.data;
+          setStats({
+            bookings: bookings.length,
+            reviews: bookings.filter((b: any) => !!b.review).length,
+            wallet: wallet?.balance ?? 0,
+          });
+        } catch {
+          if (!cancelled) setStats({ bookings: 0, reviews: 0, wallet: 0 });
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -86,9 +115,9 @@ export default function ProfileScreen() {
         {/* Stats row */}
         <View style={styles.statsRow}>
           {[
-            { label: 'Bookings', value: '12', icon: 'calendar-outline' as const },
-            { label: 'Reviews', value: '8', icon: 'star-outline' as const },
-            { label: 'Wallet', value: '₹250', icon: 'wallet-outline' as const },
+            { label: 'Bookings', value: stats ? String(stats.bookings) : '—', icon: 'calendar-outline' as const },
+            { label: 'Reviews', value: stats ? String(stats.reviews) : '—', icon: 'star-outline' as const },
+            { label: 'Wallet', value: stats ? `₹${stats.wallet.toFixed(0)}` : '—', icon: 'wallet-outline' as const },
           ].map((s) => (
             <View key={s.label} style={styles.statItem}>
               <Ionicons name={s.icon} size={20} color={colors.primary} />

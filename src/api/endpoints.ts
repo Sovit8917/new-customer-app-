@@ -68,6 +68,7 @@ export interface Booking {
   items?: { service: Service; quantity: number }[];
   worker?: Worker;
   address?: Address;
+  review?: { id: string; rating: number } | null;
   createdAt: string;
 }
 
