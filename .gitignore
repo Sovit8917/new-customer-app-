@@ -42,5 +42,7 @@ yarn-error.*
 /android
 
 # EAS
-.eas/
+.eas/*
+!.eas/workflows/
+!.eas/workflows/**
 credentials.json
